@@ -26,23 +26,18 @@ float *regressionTree(float **matrix, int num, int col)
 {
     // 定义数组，取出对应特征所有样本中，最大值和最小值
     float *p1;
-    // 平方误差最小值，初始值设定为一较大值
-    float minfun = 10000000;
-    // 最大值和最小值差值
-    float diff;
+    // 平方误差最小值，初始值设定为一较大值,最大值和最小值差值
+    float minfun = 10000000,diff;
     // c1均值与c2均值
     float avgc1 = 0, avgc2 = 0;
-    // c1的和与c2的和
-    float c1 = 0, c2 = 0;
-    // 最终输出c1，c2值
-    float oc1, oc2;
+    // c1的和与c2的和,最终输出c1，c2值
+    float c1 = 0, c2 = 0, oc1, oc2;
     // 计数变量
     int count1, count2;
     // 计算均方误差时变量
     float sumc1, sumc2, sumall;
     // 求得的对应j值和s值
-    int tj;
-    float ts;
+    int tj;float ts;
 
     // 先对逐个j进行遍历
     for (int j = 0; j < col; j++)
@@ -133,9 +128,8 @@ void treeformat(float **matrix, int num, int col, int nth, float **output, int t
     // 将输入矩阵放入回归树进行计算
     p1 = regressionTree(matrix, num, col);
     // 层数-1，当nth到达规定层数（或理解为到达叶节点）时停止并输出结果
-    nth--;
     // th为当前在第几重递归，递归数+1
-    th++;
+    nth--;th++;
 
     //如果到达规定层数，或误差值较小，没有太大改进，则输出结果
     if (p1[2] == 0 || nth == 0)
@@ -181,10 +175,8 @@ void treeformat(float **matrix, int num, int col, int nth, float **output, int t
         if (count1 != 0 && count2 != 0)
         {
             // 储存当前js值和对应的输出值
-            output[th - 1][0] = p1[0];
-            output[th - 1][1] = p1[1];
-            output[th - 1][3] = p1[3];
-            output[th - 1][4] = p1[4];
+            for (int t = 0; t < 4; t++)
+                output[th - 1][t] = p1[t];
             output[th - 1][2] = (float)0;
 
             // 处理样本点
