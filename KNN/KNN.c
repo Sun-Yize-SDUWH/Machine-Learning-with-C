@@ -29,9 +29,7 @@ int KNN(float **matrix, float *inputs, int k, int num, int col, int class)
     for (int temp1 = 0; temp1 < num; temp1++)
     {
         for (int temp2 = 0; temp2 < col; temp2++)
-        {
             distance[temp1][0] += (matrix[temp1][temp2] - inputs[temp2]) * (matrix[temp1][temp2] - inputs[temp2]);
-        }
         distance[temp1][1] = matrix[temp1][col];
     }
 
@@ -53,26 +51,16 @@ int KNN(float **matrix, float *inputs, int k, int num, int col, int class)
 
     // 进行冒泡排序
     for (int temp6 = 0; temp6 < k; temp6++)
-    {
         for (int temp7 = 0; temp7 < class; temp7++)
-        {
             if (distance[temp6][1] == classnum[temp7][1])
-            {
                 classnum[temp7][0] += 1;
-            }
-        }
-    }
 
     // 前k个点进行投票
     for (int temp8 = 0; temp8 < k; temp8++)
     {
         for (int temp9 = 0; temp9 < class; temp9++)
-        {
             if (classnum[temp8][0] < classnum[temp9][0])
-            {
                 flag += 1;
-            }
-        }
         if (flag == 0)
         {
             printf("KNN:前%d个最接近的样本中，第%d类最多，有%d个\n", k, classnum[temp8][1], classnum[temp8][0]);
@@ -80,9 +68,7 @@ int KNN(float **matrix, float *inputs, int k, int num, int col, int class)
             break;
         }
         else
-        {
             flag = 0;
-        }
     }
     return output;
 }

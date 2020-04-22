@@ -9,13 +9,9 @@ float *minmax(float **matrix, int num, int col)
     for (int temp1 = 1; temp1 < num; temp1++)
     {
         if (matrix[temp1][col] > max)
-        {
             max = matrix[temp1][col];
-        }
         if (matrix[temp1][col] < min)
-        {
             min = matrix[temp1][col];
-        }
     }
 
     // 将计算得出的最大最小值，生成数组返回
@@ -74,17 +70,11 @@ float *regressionTree(float **matrix, int num, int col)
 
             // 判断经过切分后，是否有空集，如有空集直接令对应c值为零，避免除以0会报错
             if (count1 == 0 && count2 == 0)
-            {
                 avgc1 = 0, avgc2 = 0;
-            }
             else if (count1 == 0 && count2 != 0)
-            {
                 avgc1 = 0, avgc2 = c2 / count2;
-            }
             else if (count1 != 0 && count2 == 0)
-            {
                 avgc1 = c1 / count1, avgc2 = 0;
-            }
             else
             {
                 avgc1 = c1 / count1;
@@ -95,13 +85,9 @@ float *regressionTree(float **matrix, int num, int col)
             for (int temp2 = 0; temp2 < num; temp2++)
             {
                 if (matrix[temp2][j] < s)
-                {
                     sumc1 += (matrix[temp2][j] - avgc1) * (matrix[temp2][j] - avgc1);
-                }
                 else
-                {
                     sumc2 += (matrix[temp2][j] - avgc2) * (matrix[temp2][j] - avgc2);
-                }
             }
             sumall = sumc1 + sumc2;
 
@@ -158,25 +144,17 @@ void treeformat(float **matrix, int num, int col, int nth, float **output, int t
         {
             // 当为左子树时
             if (output[temp4][2] == 0)
-            {
                 printf("第%d个变量小于%f——>", (int)(output[temp4][0]), output[temp4][1]);
-            }
             // 当为右子树时
             else
-            {
                 printf("第%d个变量大于%f——>", (int)(output[temp4][0]), output[temp4][1]);
-            }
         }
 
         // 输出当前分支对应的输出值
         if (output[th - 2][2] == 0)
-        {
             printf("输出值为%f\n", output[th - 2][3]);
-        }
         else
-        {
             printf("输出值为%f\n", output[th - 2][4]);
-        }
     }
     // 如果没有到达层数，或误差函数仍很大，则继续递归
     else
@@ -188,17 +166,13 @@ void treeformat(float **matrix, int num, int col, int nth, float **output, int t
             if (matrix[temp1][(int)p1[0]] < p1[1])
             {
                 for (int temp2 = 0; temp2 < t; temp2++)
-                {
                     matrix1[count1][temp2] = matrix[temp1][temp2];
-                }
                 count1++;
             }
             else
             {
                 for (int temp3 = 0; temp3 < t; temp3++)
-                {
                     matrix2[count2][temp3] = matrix[temp1][temp3];
-                }
                 count2++;
             }
         }
@@ -216,9 +190,7 @@ void treeformat(float **matrix, int num, int col, int nth, float **output, int t
             // 处理样本点
             float *p2[count1];
             for (int i1 = 0; i1 < count1; i1++)
-            {
                 p2[i1] = matrix1[i1];
-            }
             // 左子树开始递归
             treeformat(p2, count1, col, nth, output, th);
 
@@ -228,9 +200,7 @@ void treeformat(float **matrix, int num, int col, int nth, float **output, int t
             // 处理样本点
             float *p3[count2];
             for (int i2 = 0; i2 < count2; i2++)
-            {
                 p3[i2] = matrix2[i2];
-            }
             // 右子树开始递归
             treeformat(p3, count2, col, nth, output, th);
         }
@@ -241,23 +211,15 @@ void treeformat(float **matrix, int num, int col, int nth, float **output, int t
             {
                 // 左子树输出值
                 if (output[temp4][2] == 0)
-                {
                     printf("第%d个变量小于%f——>", (int)(output[temp4][0]), output[temp4][1]);
-                }
                 // 右子树输出值
                 else
-                {
                     printf("第%d个变量大于%f——>", (int)(output[temp4][0]), output[temp4][1]);
-                }
             }
             if (output[th - 2][2] == 0)
-            {
                 printf("输出值为%f\n", output[th - 2][3]);
-            }
             else
-            {
                 printf("输出值为%f\n", output[th - 2][4]);
-            }
         }
     }
 }
@@ -270,9 +232,7 @@ void treeprint(float **matrix, int num, int col, int nth)
     float *p[nth - 1];
     // 处理数据
     for (int i1 = 0; i1 < (nth - 1); i1++)
-    {
         p[i1] = jssum[i1];
-    }
     // 放入回归树，开始递归
     treeformat(matrix, num, col, nth, p, 0);
 }
