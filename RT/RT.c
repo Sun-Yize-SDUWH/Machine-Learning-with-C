@@ -1,4 +1,5 @@
 #include <stdio.h>
+#define FLT_MAX 3.402823466e+38F
 
 // Regression Tree 函数代码
 
@@ -27,11 +28,11 @@ float *regressionTree(float **matrix, int num, int col)
     // 定义数组，取出对应特征所有样本中，最大值和最小值
     float *p1;
     // 平方误差最小值，初始值设定为一较大值,最大值和最小值差值
-    float minfun = 10000000,diff;
+    float minfun = FLT_MAX, diff;
     // c1均值与c2均值
-    float avgc1 = 0, avgc2 = 0;
-    // c1的和与c2的和,最终输出c1，c2值
-    float c1 = 0, c2 = 0, oc1, oc2;
+    float avgc1, avgc2;
+    // c1的和与c2的和
+    float c1, c2, oc1, oc2;
     // 计数变量
     int count1, count2;
     // 计算均方误差时变量
@@ -175,7 +176,7 @@ void treeformat(float **matrix, int num, int col, int nth, float **output, int t
         if (count1 != 0 && count2 != 0)
         {
             // 储存当前js值和对应的输出值
-            for (int t = 0; t < 4; t++)
+            for (int t = 0; t < 5; t++)
                 output[th - 1][t] = p1[t];
             output[th - 1][2] = (float)0;
 
