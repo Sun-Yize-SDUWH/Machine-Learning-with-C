@@ -7,32 +7,10 @@
 // ./main
 
 #include <stdio.h>
+#include "malloc.h"
 
 // 声明外部定义的感知机函数
 extern float *perceptron(float **matrix, float step, int num, int col);
-float **readfile(int num, int col, char *filename);
-
-// 读取文件，将数据存放到二维指针
-float **readfile(int num, int col, char *filename)
-{
-    // 从文件中读取所需整体样本数据
-    float data[num][col];
-    FILE *fp;
-    fp = fopen(filename, "r");
-    for (int t = 0; t < num; t++)
-        for (int i = 0; i < col; i++)
-            fscanf(fp, "%f", &data[t][i]);
-    fclose(fp);
-
-    // 处理数据，将对应矩阵作为参数进行传递
-    float *p1[sizeof(data) / sizeof(data[0])];
-    for (int i1 = 0; i1 < sizeof(data) / sizeof(data[0]); i1++)
-        p1[i1] = data[i1];
-
-    // 返回数组矩阵
-    float **p2 = p1;
-    return p2;
-}
 
 // 主函数，选取鸢尾花数据进行训练
 int main()
@@ -50,9 +28,28 @@ int main()
     float n = 0.1;
 
 
-    // 打开文件，并将数据读取到二维数组中
-    float **p = readfile(num, col, filename);
+    // 读取文件，将数据存放到二维指针
+    float data[num][col];
+    FILE *fp;
+    fp = fopen(filename, "r");
+    for (int t = 0; t < num; t++)
+        for (int i = 0; i < col; i++)
+            fscanf(fp, "%f", &data[t][i]);
+    fclose(fp);
+
+    // 处理数据，将对应矩阵作为参数进行传递
+    float *p1[sizeof(data) / sizeof(data[0])];
+    for (int i1 = 0; i1 < sizeof(data) / sizeof(data[0]); i1++)
+        p1[i1] = data[i1];
+
+    
     // 调用perceptron算法，返回对应w和b
     float *po;
-    po = perceptron(p, n, num, col-1);
+    po = perceptron(p1, n, num, col-1);
+    // 将计算权重w与偏置b输出
+    printf("计算得到的权重w=[ ");
+    for (int t = 0; t < col-1; t++)
+        printf("%f ", po[t]);
+    printf("]\n偏置b = %f\n", po[col-1]);
+    free(po);
 }

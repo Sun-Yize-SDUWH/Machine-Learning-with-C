@@ -9,7 +9,7 @@
 #include <stdio.h>
 
 // 声明回归树函数
-extern float* minmax(float **matrix,int num,int col);
+extern float *minmax(float **matrix,int num,int col);
 extern float *regressionTree(float **matrix, int num, int col);
 extern void treeformat(float **matrix, int num, int col, int nth, float **output, int th);
 extern void treeprint(float **matrix, int num, int col, int nth);

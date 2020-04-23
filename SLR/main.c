@@ -10,29 +10,6 @@
 
 // 声明外部定义的Simple Linear Regression函数
 extern float *regression(float **matrix, int num);
-float **readfile(int num, int col, char *filename);
-
-// 读取文件，将数据存放到二维指针
-float **readfile(int num, int col, char *filename)
-{
-    // 从文件中读取所需整体样本数据
-    float data[num][col];
-    FILE *fp;
-    fp = fopen(filename, "r");
-    for (int t = 0; t < num; t++)
-        for (int i = 0; i < col; i++)
-            fscanf(fp, "%f", &data[t][i]);
-    fclose(fp);
-
-    // 处理数据，将对应矩阵作为参数进行传递
-    float *p1[sizeof(data) / sizeof(data[0])];
-    for (int i1 = 0; i1 < sizeof(data) / sizeof(data[0]); i1++)
-        p1[i1] = data[i1];
-
-    // 返回数组矩阵
-    float **p2 = p1;
-    return p2;
-}
 
 // 主函数，选取二维样本训练
 int main()
@@ -49,8 +26,21 @@ int main()
 
 
     // 打开文件，并将数据读取到二维数组中
-    float **p = readfile(num, col, filename);
+    float data[num][col];
+    FILE *fp;
+    fp = fopen(filename, "r");
+    for (int t = 0; t < num; t++)
+        for (int i = 0; i < col; i++)
+            fscanf(fp, "%f", &data[t][i]);
+    fclose(fp);
+
+    // 处理数据，将对应矩阵作为参数进行传递
+    float *p1[sizeof(data) / sizeof(data[0])];
+    for (int i1 = 0; i1 < sizeof(data) / sizeof(data[0]); i1++)
+        p1[i1] = data[i1];
+
+    
     // 调用Simple Linear Regression函数
-    float *result = regression(p,num);
+    float *result = regression(p1,num);
     printf("SLR:在y=ax+b的情况下\na的值为%f\nb的值为%f\n",result[0],result[1]);
 }

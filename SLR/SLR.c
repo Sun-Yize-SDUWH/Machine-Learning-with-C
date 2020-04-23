@@ -20,7 +20,8 @@ float *regression(float **matrix, int num)
     b = (xy_sum - num * x_average * y_average) / (xx_sum - num * x_average * x_average);
     a = y_average - b * x_average;
 
-    float output[2] = {a, b};
+    static float output[2];
+    output[0] = a, output[1] = b;
     float *po = output;
     return po;
 }

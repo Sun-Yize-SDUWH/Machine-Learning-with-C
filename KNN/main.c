@@ -10,29 +10,6 @@
 
 // 声明外部定义的KNN函数
 extern int KNN(float **matrix, float *inputs, int k, int num, int col, int class);
-float** readfile(int num,int col,char* filename);
-
-// 读取文件，将数据存放到二维指针
-float** readfile(int num,int col,char* filename)
-{
-    // 从文件中读取所需整体样本数据
-    float data[num][col];
-    FILE *fp;
-    fp = fopen(filename, "r");
-    for (int t = 0; t < num; t++)
-        for (int i = 0; i < col; i++)
-            fscanf(fp, "%f", &data[t][i]);
-    fclose(fp);
-
-    // 处理数据，将对应矩阵作为参数进行传递
-    float *p1[sizeof(data) / sizeof(data[0])];
-    for (int i1 = 0; i1 < sizeof(data) / sizeof(data[0]); i1++)
-        p1[i1] = data[i1];
-
-    // 返回数组矩阵
-    float **p2 = p1;
-    return p2;
-}
 
 // 主函数，选取鸢尾花数据进行分类测试
 int main()
@@ -54,10 +31,23 @@ int main()
     int k = 10;
 
 
-    // 打开文件，并将数据读取到二维数组中
-    float **p = readfile(num, col, filename);
+    // 从文件中读取所需整体样本数据
+    float data[num][col];
+    FILE *fp;
+    fp = fopen(filename, "r");
+    for (int t = 0; t < num; t++)
+        for (int i = 0; i < col; i++)
+            fscanf(fp, "%f", &data[t][i]);
+    fclose(fp);
+
+    // 处理数据，将对应矩阵作为参数进行传递
+    float *p1[sizeof(data) / sizeof(data[0])];
+    for (int i1 = 0; i1 < sizeof(data) / sizeof(data[0]); i1++)
+        p1[i1] = data[i1];
+
+
     // KNN函数，输入值分别为：整体样本，要判断的输入，k值，样本总体数量，样本特征数，总共有几类
     int nth;
-    nth = KNN(p, test, k, num, col-1, class);
+    nth = KNN(p1, test, k, num, col-1, class);
     printf("输入样本经过判断，为第%d类\n", nth);
 }

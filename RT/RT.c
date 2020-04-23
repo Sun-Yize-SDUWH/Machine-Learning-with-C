@@ -16,7 +16,8 @@ float *minmax(float **matrix, int num, int col)
     }
 
     // 将计算得出的最大最小值，生成数组返回
-    float a[2] = {min, max};
+    static float a[2];
+    a[0]=min,a[1]=max;
     float *p = a;
     return p;
 }
@@ -102,14 +103,15 @@ float *regressionTree(float **matrix, int num, int col)
     // 差值较小时，结束循环，返回结果
     if (minfun < 1000)
     {
-        float output[5] = {0, 0, 0, 0, 0};
+        static float output[5] = {0, 0, 0, 0, 0};
         float *po = output;
         return po;
     }
     // 返回j值（第几个变量），s值（切分点为多少），标志变量，小于s时的c1值，大于s时的c2值
     else
     {
-        float output[5] = {(float)tj, ts, 1, oc1, oc2};
+        static float output[5];
+	output[0] = (float)tj, output[1] = ts, output[2] = 1,output[3] = oc1, output[4] = oc2;
         float *po = output;
         return po;
     }
