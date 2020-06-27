@@ -1,8 +1,5 @@
 #include "DT.h"
 
-double **dataset;
-int row,col;
-
 int get_row(char *filename)//获取行数
 {
 	char line[1024];
@@ -182,10 +179,12 @@ int main()
 		dataset[i] = (double *)malloc(col * sizeof(double));
 	} //动态申请二维数组
 	get_two_dimension(line, dataset, filename);
-	int min_size = 5;
-	int max_depth = 10;
+
+	// CART参数，分别为叶节点最小样本数和树最大层数
+	int min_size = 5, max_depth = 10;
 	int n_folds = 5;
 	int fold_size = (int)(row / n_folds);
-	
+
+	// CART决策树，返回交叉验证正确率
 	float* score = evaluate_algorithm(dataset, col, n_folds, fold_size, min_size, max_depth);
 }

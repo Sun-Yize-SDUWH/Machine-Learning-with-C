@@ -5,9 +5,11 @@
 #include <string.h>
 #include <stdlib.h>
 
+// 读取csv数据，全局变量
 double **dataset;
 int row, col;
 
+// 树的结构体，flag判断是否为叶节点，index和value为切分点，Brance为对应子树
 struct treeBranch
 {
     int flag;
@@ -18,6 +20,7 @@ struct treeBranch
     struct treeBranch *rightBranch;
 };
 
+// 切分数据，splitdata为切分成左右两组的三维数据，row1为左端数据行数，row2为右端
 struct dataset
 {
     int row1;

@@ -5,6 +5,9 @@
 #include <string.h>
 #include <stdlib.h>
 
+double **dataset;
+int row, col;
+
 struct treeBranch
 {
     int flag;
