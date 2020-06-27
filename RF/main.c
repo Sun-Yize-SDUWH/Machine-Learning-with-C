@@ -1,80 +1,191 @@
-// 18数据科学 孙易泽
-// 学号：201800820135
-// Random Forest算法
+#include "RF.h"
 
-// 命令行中，如下命令编译和运行
-// gcc -o main main.c RF.c
-// ./main
+double **dataset;
+int row,col;
 
-#include <stdio.h>
+int get_row(char *filename)//获取行数
+{
+	char line[1024];
+	int i = 0;
+	FILE* stream = fopen(filename, "r");
+	while(fgets(line, 1024, stream)){
+		i++;
+	}
+	fclose(stream);
+	return i;
+}
 
-// 计算出样本每个变量中，有几个分类，以及每个分类名称，储存在结构体中
-void featurenum(char **matrix, int num, int col);
-// 计数函数，计算输入数组，每种分类的个数
-void countnum(char *array, char *compare, int num, int classnum);
-// 计算基尼指数
-float *gini(char **matrix, int num, int colfe, int col);
-// 决策树函数，采用CART算法
-void decisionTree(char **matrix, char *sample, int num, int col);
-// 随机森林，进行多次随机有放回抽取样本，并把样本提供给决策树
-char randomForest(char **matrix, char *sample, int num, int col, int treenum);
+int get_col(char *filename)//获取列数
+{
+	char line[1024];
+	int i = 0;
+	FILE* stream = fopen(filename, "r");
+	fgets(line, 1024, stream);
+	char* token = strtok(line, ",");
+	while(token){
+		token = strtok(NULL, ",");
+		i++;
+	}
+	fclose(stream);
+	return i;
+}
 
+void get_two_dimension(char *line, double **dataset, char *filename)
+{
+	FILE* stream = fopen(filename, "r");
+	int i = 0;
+	while (fgets(line, 1024, stream))//逐行读取
+    {
+    	int j = 0;
+    	char *tok;
+        char *tmp = strdup(line);
+        for (tok = strtok(line, ","); tok && *tok; j++, tok = strtok(NULL, ",\n")){
+        	dataset[i][j] = atof(tok);//转换成浮点数
+		}//字符串拆分操作
+        i++;
+        free(tmp);
+    }
+    fclose(stream);//文件打开后要进行关闭操作
+}
 
-// 主函数，读取文件，划分训练集和测试集，并最终输出结果
+double*** cross_validation_split(double **dataset, int row, int n_folds, int fold_size)
+{
+	srand(10); //种子
+	double ***split;
+	int i, j = 0, k = 0;
+	int index;
+	double **fold;
+	split = (double ***)malloc(n_folds * sizeof(double **));
+	for (i = 0; i < n_folds; i++)
+	{
+		fold = (double **)malloc(fold_size * sizeof(double *));
+		while (j < fold_size)
+		{
+			fold[j] = (double *)malloc(col * sizeof(double));
+			index = rand() % row;
+			fold[j] = dataset[index];
+			for (k = index; k < row - 1; k++) //for循环删除这个数组中被rand取到的元素
+			{
+				dataset[k] = dataset[k + 1];
+			}
+			row--; //每次随机取出一个后总行数-1，保证不会重复取某一行
+			j++;
+		}
+		j = 0; //清零j
+		split[i] = fold;
+	}
+	return split;
+}
+
+double *get_test_prediction(double **train, double **test, int column, int min_size, int max_depth, int n_features, int n_trees, float sample_size, int fold_size, int train_size)
+{
+	double *predictions = (double *)malloc(fold_size * sizeof(double)); //预测集的行数就是数组prediction的长度
+	struct treeBranch **forest = random_forest(train_size, column, train, min_size, max_depth, n_features, n_trees, sample_size);
+	for (int i = 0; i < fold_size; i++)
+	{
+		 predictions[i] = predict(test[i], forest, n_trees);
+	}
+	return predictions; //返回对test的预测数组
+}
+
+float accuracy_metric(double *actual, double *predicted, int fold_size)
+{
+	int correct = 0;
+	for (int i = 0; i < fold_size; i++)
+	{
+		 if (actual[i] == predicted[i])
+			 correct += 1;
+	}
+	return (correct / (float)fold_size) * 100.0;
+}
+
+float* evaluate_algorithm(double **dataset,int column, int n_folds, int fold_size, int min_size, int max_depth, int n_features, int n_trees, float sample_size)
+{
+	double ***split = cross_validation_split(dataset, row, n_folds, fold_size);
+	int i, j, k, l;
+	int test_size = fold_size;
+	int train_size = fold_size * (n_folds - 1); //train_size个一维数组
+	float *score = (float *)malloc(n_folds * sizeof(float));
+	for (i = 0; i < n_folds; i++)
+	{ //因为要遍历删除，所以拷贝一份split
+		double ***split_copy = (double ***)malloc(n_folds * sizeof(double**));
+		for (j = 0; j < n_folds; j++)
+		{
+			split_copy[j] = (double **)malloc(fold_size * sizeof(double *));
+			for (k = 0; k < fold_size; k++)
+			{
+				split_copy[j][k] = (double *)malloc(column * sizeof(double));
+			}
+		}
+		for (j = 0; j < n_folds; j++)
+		{
+			for (k = 0; k < fold_size; k++)
+			{
+				for (l = 0; l < column; l++)
+				{
+					split_copy[j][k][l] = split[j][k][l];
+				}
+			}
+		}
+		double **test_set = (double **)malloc(test_size * sizeof(double *));
+		for (j = 0; j < test_size; j++)
+		{ //对test_size中的每一行
+			test_set[j] = (double *)malloc(column * sizeof(double));
+			for (k = 0; k < column; k++)
+			{
+				test_set[j][k] = split_copy[i][j][k];
+			}
+		}
+		for (j = i; j < n_folds - 1; j++)
+		{
+			split_copy[j] = split_copy[j + 1];
+		}
+		double **train_set = (double **)malloc(train_size * sizeof(double *));
+		for (k = 0; k < n_folds - 1; k++)
+		{
+			for (l = 0; l < fold_size; l++)
+			{
+				train_set[k * fold_size + l] = (double *)malloc(column * sizeof(double));
+				train_set[k * fold_size + l] = split_copy[k][l];
+			}
+		}
+		double *predicted = (double *)malloc(test_size * sizeof(double)); //predicted有test_size个
+		predicted = get_test_prediction(train_set, test_set, column, min_size, max_depth, n_features, n_trees, sample_size, fold_size, train_size);
+		double *actual = (double *)malloc(test_size * sizeof(double));
+		for (l = 0; l < test_size; l++)
+		{
+			actual[l] = test_set[l][column - 1];
+		}
+		float accuracy = accuracy_metric(actual, predicted, test_size);
+		score[i] = accuracy;
+		printf("score[%d]=%f\n", i, score[i]);
+		free(split_copy);
+	}
+	float total = 0.0;
+	for (l = 0; l < n_folds; l++)
+	{
+		total += score[l];
+	}
+	printf("mean_accuracy=%f\n", total / n_folds);
+	return score;
+}
+
 int main()
 {
-    printf("随机森林程序运行中...\n");
+	char filename[] = "sonar.csv";
+	char line[1024];
+	row = get_row(filename);
+	col = get_col(filename);
+	dataset = (double **)malloc(row * sizeof(int *));
+	for (int i = 0; i < row; ++i)
+	{
+		dataset[i] = (double *)malloc(col * sizeof(double));
+	} //动态申请二维数组
+	get_two_dimension(line, dataset, filename);
+	int min_size = 2, max_depth = 10, n_features = 7, n_trees = 10;
+	float sample_size=1;
+	int n_folds = 5;
+	int fold_size = (int)(row / n_folds);
 
-    /********************
-    以下几行为可修改的参数
-    ********************/
-    // 输入样本文件名
-    char filename[] = "./mushroom.txt";
-    // 输入样本数量
-    int num = 8124;
-    // 选取样本中最后多少行数据作为测试集
-    int samplenum = 100;
-    // 输入样本维度
-    int col = 23;
-    // 输入一共生成多少颗树
-    int treenum = 6;
-
-
-    // 定义样本集中正确的次数
-    float correct = 0;
-    // 自变量的维度
-    int col_x = col - 1;
-    // 训练集数目
-    int num_x = num - samplenum;
-    // 从文件中读取所需整体样本数据
-    char data[num][col];
-    FILE *fp;
-    fp = fopen(filename, "r");
-    for (int t = 0; t < num; t++)
-        for (int i = 0; i < col; i++)
-            fscanf(fp, "%[^,^\n]%*c", &data[t][i]);
-    fclose(fp);
-
-    // 处理数据，将对应矩阵作为参数进行传递
-    char *p1[sizeof(data) / sizeof(data[0])];
-    for (int i1 = 0; i1 < sizeof(data) / sizeof(data[0]); i1++)
-        p1[i1] = data[i1];
-
-    // 逐个输入测试集合
-    for (int i1 = 0; i1 < samplenum; i1++)
-    {
-        // 生成测试样本
-        char sample[col];
-        for (int i2 = 0; i2 < col; i2++)
-            sample[i2] = p1[num - i1 - 1][i2];
-
-        // 输入随机森林函数，输入值分别为：训练样本，测试样本，训练样本数目，自变量维度，森林中树木数量
-        char p = randomForest(p1, sample, num_x, col_x, treenum);
-        // 如结果正确，正确数+1
-        if (p==sample[col-1])
-            correct++;
-    }
-
-    // 打印出测试集正确率以及其他数据
-    printf("样本集为%s\n共训练%d个样本，选取%d个作为测试集，森林包含%d棵树\n其中，测试集的正确率为%.1f%%。\n", filename, num_x, samplenum, treenum, correct / (float)samplenum * 100);
+	float *score = evaluate_algorithm(dataset, col, n_folds, fold_size, min_size, max_depth, n_features, n_trees, sample_size);
 }

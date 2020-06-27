@@ -1,329 +1,323 @@
-/*******************
-Random Forest函数代码
-*******************/
-#include <stdio.h>
-#include <stdlib.h>
-#include "malloc.h"
-#include <time.h>
-#define FLT_MAX 3.402823466e+38F
+#include "RF.h"
 
-// 定义决策树输出分类结果，全局变量
-char decisionTreeOutput;
-
-// 变量特征的结构体，储存每个变量有几个分类，以及每个分类名称
-struct Class1
+struct dataset *test_split(int index, double value, int row, int col, double **data)
 {
-    int feturenum;
-    char feturename[20];
-    int flag;
-} feture[] = {0};
-
-// 计数结构体，计算每个种类的个数
-struct Class2
-{
-    char classname;
-    int classnum;
-} class[] = {0};
-
-
-// 计数函数，计算输入数组，每种分类的个数
-void countnum(char *array, char *compare, int num, int classnum)
-{
-    // 初始化结构体
-    for (int i1 = 0; i1 < classnum; i1++)
+    struct dataset *split = (struct dataset *)malloc(sizeof(struct dataset));
+    int count1=0,count2=0;
+    double ***groups = (double ***)malloc(2 * sizeof(double **));
+    for (int i = 0; i < 2; i++)
     {
-        class[i1].classname = compare[i1];
-        class[i1].classnum = 0;
-    }
-    // 对所有样本遍历
-    for (int i2 = 0; i2 < num; i2++)
-    {
-        for (int i3 = 0; i3 < classnum; i3++)
+        groups[i]=(double **)malloc(row * sizeof(double *));
+        for (int j = 0; j < row; j++)
         {
-            // 样本所属的对应类别+1
-            if (array[i2] == class[i3].classname)
-            {
-                class[i3].classnum++;
-                break;
-            }
+            groups[i][j] = (double *)malloc(col * sizeof(double ));
         }
     }
+
+    for (int i = 0; i < row; i++)
+    {
+        if (data[i][index]<value)
+        {
+            groups[0][count1]=data[i];
+            count1 ++;
+        }else{
+            groups[1][count2] = data[i];
+            count2++;
+        }
+    }
+    split->splitdata = groups;
+    split->row1 = count1;
+    split->row2 = count2;
+    return split;
 }
 
-// 计算出样本每个变量中，有几个分类，以及每个分类名称，储存在结构体中
-void featurenum(char **matrix, int num, int col)
+double gini_index(int index,double value,int row, int col, double **dataset, double *class, int classnum)
 {
-    // 标志变量
-    int flag1 = 0;
-    // 转换为总体样本维度（加上最后结果的一维）
-    col++;
+    float *numcount1 = (float *)malloc(classnum * sizeof(float));
+    float *numcount2 = (float *)malloc(classnum * sizeof(float));
+    for (int i = 0; i < classnum; i++)
+        numcount1[i]=numcount2[i]=0;
 
-    // 初始化特征的结构体
-    for (int temp1 = 0; temp1 < col; temp1++)
+    float count1 = 0, count2 = 0;
+    double gini1,gini2,gini;
+    gini1=gini2=gini=0;
+
+    for (int i = 0; i < row; i++)
     {
-        feture[temp1].feturenum = 1;
-        feture[temp1].feturename[0] = matrix[0][temp1];
-        feture[temp1].flag = 0;
-    }
-
-    // 逐个特征进行遍历
-    for (int i1 = 0; i1 < col; i1++)
-    {
-        // 逐个样本遍历
-        for (int i2 = 0; i2 < num; i2++)
+        if (dataset[i][index] < value)
         {
-            // 标志变量归0
-            flag1 = 0;
-            for (int i3 = 0; i3 < feture[i1].feturenum; i3++)
-            {
-                if (feture[i1].feturename[i3] == matrix[i2][i1])
-                {
-                    flag1 = 1;
-                    break;
-                }
-            }
-            // 如在已知类别中无匹配，则添加到新类别
-            if (flag1 == 0)
-            {
-                feture[i1].feturename[feture[i1].feturenum] = matrix[i2][i1];
-                feture[i1].feturenum++;
-            }
-        }
-    }
-}
-
-// 计算基尼指数，返回值为对应特征最小基尼系数，及其对应的最优的切分点
-float *gini(char **matrix, int num, int colfe, int col)
-{
-    // 定义返回值数组，分别为：特征最小基尼系数，对应特征，对应的最优的切分点
-    static float output[3];
-    // 计数变量
-    int count1, count2;
-    // 临时变量，储存计算数据
-    float temp;
-    // 基尼系数临时储存变量
-    float gini1, gini2, ginisum;
-    // 当前最小基尼系数，初始值设定一较大值
-    float ginimin = FLT_MAX;
-    // 将二维数组转换为对应特征的一位数组，传入计数变量
-    char array1[num], array2[num];
-
-    // 对应特征的逐个分类进行遍历
-    for (int i1 = 0; i1 < feture[colfe].feturenum; i1++)
-    {
-        count1 = 0, count2 = 0, temp = 0;
-        for (int i2 = 0; i2 < num; i2++)
-        {
-            // 根据对应切分点，分为两类：属于该切分点和不属于的
-            if (matrix[i2][colfe] == feture[colfe].feturename[i1])
-            {
-                array1[count1] = matrix[i2][col];
-                count1++;
-            }
-            else
-            {
-                array2[count2] = matrix[i2][col];
-                count2++;
-            }
-        }
-
-        // 计算第一类的数量
-        countnum(array1, feture[col].feturename, count1, feture[col].feturenum);
-        for (int i3 = 0; i3 < feture[col].feturenum; i3++)
-            temp += ((float)class[i3].classnum / (float)count1) * ((float)class[i3].classnum / (float)count1);
-        temp = (float)1 - temp;
-        // 算出第一类的基尼系数，并乘以对应比重
-        gini1 = ((float)count1 / (float)num) * temp;
-
-        // 临时变量归0
-        temp = 0;
-        // 计算第二类的数量
-        countnum(array2, feture[col].feturename, count2, feture[col].feturenum);
-        for (int i4 = 0; i4 < feture[col].feturenum; i4++)
-            temp += ((float)class[i4].classnum / (float)count2) * ((float)class[i4].classnum / (float)count2);
-        temp = 1 - temp;
-        // 算出第二类的基尼系数，并乘以对应比重
-        gini2 = ((float)count2 / (float)num) * temp;
-        // 两类基尼系数相加，算出特征下对应切分点的基尼系数
-        ginisum = gini1 + gini2;
-
-        // 如果是目前最小的基尼系数，则储存值和对应切分点
-        if (ginisum < ginimin)
-        {
-            ginimin = ginisum;
-            output[0] = ginisum;
-            output[1] = (float)colfe;
-            output[2] = (float)i1;
-        }
-    }
-
-    // 返回最终计算最小基尼系数，对应特征，对应的最优的切分点
-    float *p = output;
-    return p;
-}
-
-// 决策树函数，采用CART算法
-void decisionTree(char **matrix, char *sample, int num, int col)
-{
-    // 标志变量
-    int flag1 = 1, flag2 = 0;
-    // 指针变量，储存gini函数的返回值
-    float *tempgini;
-    // 特征的最小基尼系数，初始值为一较大值
-    float ginimin = FLT_MAX;
-    // j为最优特征，s为最优特征的最优切分点
-    int j, s;
-    // 计数变量
-    int count1 = 0, count2 = 0;
-    // 储存经过js分类后的训练样本
-    char leaf[num][col + 1];
-    // 最终输出结果
-    char output;
-    // 输入计数函数的数组
-    char array[num];
-
-    // 查看是否仍存在未分类的特征
-    for (int i1 = 0; i1 < col - 1; i1++)
-    {
-        if (feture[i1].flag == 0)
-        {
-            flag1 = 0;
-            break;
-        }
-    }
-    // 查看输入样本是否都属于同一类
-    for (int i2 = 0; i2 < num; i2++)
-        array[i2] = matrix[i2][col];
-    countnum(array, feture[col].feturename, num, feture[col].feturenum);
-    // 查看样本是否属于同一类
-    for (int i3 = 0; i3 < feture[col].feturenum; i3++)
-    {
-        if (class[i3].classnum == num)
-        {
-            flag1 = 1;
-            break;
-        }
-    }
-
-    // 如果样本属于同一类或所有特征均已被分类，则输出结果
-    // 如果没有，则继续进行决策树递归
-    if (flag1 == 1 || flag2 == 1)
-        decisionTreeOutput = matrix[0][col];
-    else
-    {
-        // 对没有进行分类的特征，逐个计算基尼系数，算出最优特征
-        for (int temp1 = 0; temp1 < col; temp1++)
-        {
-            if (feture[temp1].flag == 0)
-            {
-                // 放入基尼系数计算函数进行计算
-                tempgini = gini(matrix, num, temp1, col);
-                // 如果为当前最小基尼系数，则储存对应特征和特征对应切分点
-                if (tempgini[0] < ginimin)
-                {
-                    ginimin = tempgini[0];
-                    j = temp1;
-                    s = (int)tempgini[2];
-                }
-            }
-        }
-        // 对应特征被标记为1，代表已进行过分类
-        feture[j].flag = 1;
-        // 根据切分点，将原有样本分类形成子样本，进行决策树递归
-        // 选择和测试集相符的分支进行分类
-        if (sample[j] == feture[j].feturename[s])
-        {
-            // 逐个样本遍历
-            for (int temp2 = 0; temp2 < num; temp2++)
-            {
-                if (matrix[temp2][j] == feture[j].feturename[s])
-                {
-                    // 对应子样本进行储存
-                    for (int temp3 = 0; temp3 < col + 1; temp3++)
-                        leaf[count1][temp3] = matrix[temp2][temp3];
-                    count1++;
-                }
-            }
-            // 处理子样本
-            char *p1[sizeof(leaf) / sizeof(leaf[0])];
-            for (int i1 = 0; i1 < sizeof(leaf) / sizeof(leaf[0]); i1++)
-                p1[i1] = leaf[i1];
-            // 子样本放入决策树，开始递归
-            decisionTree(p1, sample, count1, col);
+            count1 ++;
+            for (int j = 0; j < classnum; j++)
+                if (dataset[i][col-1]==class[j])
+                    numcount1[j] += 1;
         }
         else
         {
-            // 逐个样本遍历
-            for (int temp3 = 0; temp3 < num; temp3++)
-            {
-                if (matrix[temp3][j] != feture[j].feturename[s])
-                {
-                    // 对应子样本进行储存
-                    for (int temp4 = 0; temp4 < col + 1; temp4++)
-                        leaf[count2][temp4] = matrix[temp3][temp4];
-                    count2++;
-                }
-            }
-            // 处理子样本
-            char *p2[sizeof(leaf) / sizeof(leaf[0])];
-            for (int i1 = 0; i1 < sizeof(leaf) / sizeof(leaf[0]); i1++)
-                p2[i1] = leaf[i1];
-            // 子样本放入决策树，开始递归
-            decisionTree(p2, sample, count2, col);
+            count2++;
+            for (int j = 0; j < classnum; j++)
+                if (dataset[i][col - 1] == class[j])
+                    numcount2[j]++;
         }
+    }
+
+    if (count1==0)
+    {
+        gini1=1;
+        for (int i = 0; i < classnum; i++)
+            gini2 += (numcount2[i] / count2) * (numcount2[i] / count2);
+    }else if (count2==0)
+    {
+        gini2=1;
+        for (int i = 0; i < classnum; i++)
+            gini1 += (numcount1[i] / count1) * (numcount1[i] / count1);
+    }else
+    {
+        for (int i = 0; i < classnum; i++)
+        {
+            gini1 += (numcount1[i] / count1) * (numcount1[i] / count1);
+            gini2 += (numcount2[i] / count2) * (numcount2[i] / count2);
+        }
+    }
+    gini1 = 1 - gini1;
+    gini2 = 1 - gini2;
+    
+    gini = (count1 / row) * gini1 + (count2 / row) * gini2;
+    
+    free(numcount1);free(numcount2);
+    numcount1=numcount2=NULL;
+    return gini;
+}
+
+struct treeBranch *get_split(int row, int col, double **dataset, double *class, int classnum, int n_features)
+{
+    struct treeBranch *tree=(struct treeBranch *)malloc(sizeof(struct treeBranch));
+    int *featurelist=(int *)malloc(n_features * sizeof(int));
+    int count=0,flag=0,temp;
+    int b_index=999;
+    double b_score = 999, b_value = 999,score;
+    while (count<n_features)
+    {
+        flag=0;
+        temp=rand()%(col-1);
+        for (int i = 0; i < count; i++)
+            if (temp==featurelist[i])
+                flag=1;
+        if (flag==0)
+        {
+           featurelist[count]=temp;
+           count++;
+        } 
+    }
+    
+    for (int i = 0; i < n_features; i++)
+    {
+        for (int j = 0; j < row; j++)
+        {
+            double value=dataset[j][featurelist[i]];
+            score = gini_index(featurelist[i], value, row, col, dataset, class, classnum);
+            if (score<b_score)
+            {
+                b_score = score;
+                b_value = value;
+                b_index = featurelist[i];
+            }
+        }
+    }
+    tree->index=b_index;tree->value=b_value;tree->flag=0;
+    return tree;
+}
+
+double to_terminal(int row, int col, double **data, double *class, int classnum)
+{
+    int *num=(int *)malloc(classnum*sizeof(classnum));
+    double maxnum=0;
+    int flag=0;
+    for (int i = 0; i < classnum; i++)
+        num[i]=0;
+    
+    for (int i = 0; i < row; i++)
+        for (int j = 0; j < classnum; j++)
+            if (data[i][col-1]==class[j])
+                num[j]++;
+
+    for (int j = 0; j < classnum; j++)
+    {
+        if (num[j] > flag)
+        {
+            flag = num[j];
+            maxnum = class[j];
+        }
+    }
+    free(num);
+    num=NULL;
+    return maxnum;
+}
+
+void split(struct treeBranch *tree, int row, int col, double **data, double *class, int classnum, int depth, int min_size, int max_depth, int n_features)
+{
+    if (depth>=max_depth)
+    {
+        tree->flag=1;
+        tree->output = to_terminal(row, col, data, class, classnum);
+        return;
+    }
+    struct dataset *childdata = test_split(tree->index, tree->value, row, col, data);
+    if (childdata->row1==0 || childdata->row2==0)
+    {
+        tree->flag = 1;
+        tree->output = to_terminal(row, col, data, class, classnum);
+        return;
+    }
+    
+    if (childdata->row1<=min_size)
+    {
+        struct treeBranch *leftchild = (struct treeBranch *)malloc(sizeof(struct treeBranch));
+        leftchild->flag=1;
+        leftchild->output = to_terminal(childdata->row1, col, childdata->splitdata[0], class, classnum);
+        tree->leftBranch=leftchild;
+    }
+    else
+    {
+        struct treeBranch *leftchild = get_split(childdata->row1, col, childdata->splitdata[0], class, classnum, n_features);
+        tree->leftBranch=leftchild;
+        split(leftchild, childdata->row1, col, childdata->splitdata[0], class, classnum, depth + 1, min_size, max_depth, n_features);
+    }
+
+    if (childdata->row2 <= min_size)
+    {
+        struct treeBranch *rightchild = (struct treeBranch *)malloc(sizeof(struct treeBranch));
+        rightchild->flag = 1;
+        rightchild->output = to_terminal(childdata->row2, col, childdata->splitdata[1], class, classnum);
+        tree->rightBranch = rightchild;
+    }
+    else
+    {
+        struct treeBranch *rightchild = get_split(childdata->row2, col, childdata->splitdata[1], class, classnum, n_features);
+        tree->rightBranch = rightchild;
+        split(rightchild, childdata->row2, col, childdata->splitdata[1], class, classnum, depth + 1, min_size, max_depth, n_features);
+    }
+    free(childdata->splitdata);childdata->splitdata=NULL;
+    free(childdata);childdata=NULL;
+    return;
+}
+
+struct treeBranch *build_tree(int row, int col, double **data, int min_size, int max_depth, int n_features)
+{
+    int count1 = 0, flag1 = 0;
+    double classes[20];
+    for (int i = 0; i < row; i++)
+    {
+        if (count1 == 0)
+        {
+            classes[0] = data[i][col - 1];
+            count1++;
+        }
+        else
+        {
+            flag1 = 0;
+            for (int j = 0; j < count1; j++)
+                if (classes[j] == data[i][col - 1])
+                    flag1 = 1;
+            if (flag1 == 0)
+            {
+                classes[count1] = data[i][col - 1];
+                count1++;
+            }
+        }
+    }
+    struct treeBranch *result = get_split(row, col, data, classes, count1, n_features);
+    split(result, row, col, data, classes, count1, 1, min_size, max_depth, n_features);
+    return result;
+}
+
+struct treeBranch **random_forest(int row, int col, double **data, int min_size, int max_depth, int n_features, int n_trees, float sample_size)
+{
+    struct treeBranch ** forest = (struct treeBranch **)malloc(n_trees * sizeof(struct treeBranch*));
+    int samplenum = (int)(row*sample_size);
+    int temp;
+
+    double ** subsample=(double **)malloc(samplenum * sizeof(double *));
+    for (int i = 0; i < samplenum; i++)
+    {
+        subsample[i]=(double *)malloc(col * sizeof(double));
+    }
+    
+    for (int j = 0; j < n_trees; j++)
+    {
+        for (int i = 0; i < samplenum; i++)
+        {
+            temp = rand() % row;
+            subsample[i] = data[temp];
+        }
+        struct treeBranch *tree = build_tree(samplenum, col, subsample, min_size, max_depth, n_features);
+        forest[j]=tree;
+    }
+    return forest;
+}
+
+double treepredict(double *test, struct treeBranch *tree)
+{
+    double output;
+    if (tree->flag==1)
+    {
+        output = tree->output;
+        return output;
+    }
+    else
+    {
+        if (test[tree->index]<tree->value)
+        {
+            output = treepredict(test, tree->leftBranch);
+            return output;
+        }
+        else
+        {
+            output = treepredict(test, tree->rightBranch);
+            return output;
+        } 
     }
 }
 
-// 随机森林，进行多次随机有放回抽取样本，并把样本提供给决策树
-char randomForest(char **matrix, char *sample, int num, int col, int treenum)
+double predict(double *test, struct treeBranch **forest, int n_trees)
 {
-    // 储存有放回抽取的随机样本
-    char random[num][col + 1];
-    // 储存所有决策树返回的结果
-    char outputs[treenum];
-    // 有放回随机数的生成
-    int randomnum;
-    // 储存最多的投票数，计数变量
-    int classmax = 0, count = 0;
-    // 最多投票数对应的类别名称
-    char classname;
+    double output;
+    double * forest_result=(double *)malloc(n_trees * sizeof(double));
+    double * classes = (double *)malloc(n_trees * sizeof(double));
+    int * num = (int *)malloc(n_trees * sizeof(int));
+    for (int i = 0; i < n_trees; i++)
+        num[i]=0;
+    
+    int count=0,flag,temp=0;
 
-    // 放入特征函数，计算出样本每个变量中，有几个分类，以及每个分类名称，储存在结构体中
-    featurenum(matrix, num, col);
-    // 按照设定树的数量，逐个树进行计算
-    for (int temp1 = 0; temp1 < treenum; temp1++)
+    for (int i = 0; i < n_trees; i++)
+        forest_result[i] = treepredict(test, forest[i]);
+
+    for (int i = 0; i < n_trees; i++)
     {
-        count = 0;
-        // 随机有放回抽取样本，并将样本储存
-        for (int i1 = 0; i1 < num; i1++)
+        flag=0;
+        for (int j = 0; i < count; i++)
         {
-            srand(i1 * time(NULL));
-            randomnum = rand() % (num - 2);
-            for (int i2 = 0; i2 < col + 1; i2++)
-                random[count][i2] = matrix[randomnum][i2];
+            if (forest_result[i]==classes[j])
+            {
+                flag=1;
+                num[j]++;
+            }
+        }
+        if (flag==0)
+        {
+            classes[count]=forest_result[i];
+            num[count]++;
             count++;
         }
-        // 处理抽取好的样本
-        char *p[sizeof(random) / sizeof(random[0])];
-        for (int i3 = 0; i3 < sizeof(random) / sizeof(random[0]); i3++)
-            p[i3] = random[i3];
-
-        // 放入决策树，开始计算
-        decisionTree(p, sample, count, col);
-        // 返回结果储存在公共变量，提出到结果数组中
-        outputs[temp1] = decisionTreeOutput;
     }
-    // 计算所有树中，返回的每种结果的数量
-    countnum(outputs, feture[col].feturename, treenum, feture[col].feturenum);
-    // 选取投票结果最多的类别
-    for (int temp2 = 0; temp2 < feture[col].feturenum; temp2++)
+    
+    for (int i = 0; i < count; i++)
     {
-        if (class[temp2].classnum > classmax)
+        if (num[i]>temp)
         {
-            classmax = class[temp2].classnum;
-            classname = class[temp2].classname;
+            temp=num[i];
+            output=classes[i];
         }
     }
-    // 返回投票结果最多的类别
-    return classname;
+    return output;
 }
